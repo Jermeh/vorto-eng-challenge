@@ -10,8 +10,7 @@ interface Load {
     pickup: Point;
     dropoff: Point;
     distance: number;
-    distanceFromOriginToPickup: number;
-    distanceFromDropoffToOrigin: number;
+    returnDistance: number;
 }
 
 const ORIGIN_POINT: Point = {
@@ -45,8 +44,7 @@ const loadFromFileLine = (line: string): Load => {
         pickup: pickup,
         dropoff: dropoff,
         distance: distanceBetweenPoints(pickup, dropoff),
-        distanceFromOriginToPickup: distanceBetweenPoints(ORIGIN_POINT, pickup),
-        distanceFromDropoffToOrigin: distanceBetweenPoints(dropoff, ORIGIN_POINT),
+        returnDistance: distanceBetweenPoints(dropoff, ORIGIN_POINT),
     };
 }
 
@@ -67,7 +65,7 @@ const distanceBetweenPoints = (p1: Point, p2: Point): number => {
  */
 const canPickupLoad = (currentLocation: Point, currentDriveTime: number, load: Load): boolean => {
     const distanceToLoad = distanceBetweenPoints(currentLocation, load.pickup);
-    const totalDistance = distanceToLoad + load.distance + load.distanceFromDropoffToOrigin;
+    const totalDistance = distanceToLoad + load.distance + load.returnDistance;
     return currentDriveTime + totalDistance <= MAX_DRIVE_TIME;
 }
 
