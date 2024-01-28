@@ -31,7 +31,7 @@ const pointFromString = (str: string): Point => {
 }
 
 /**
- * Parses the contents of the test file's line into a PointPair
+ * Parses the contents of the test file's line into a Load
  * @param line A string in format "loadNumber (x1,y1) (x2, y2)"
  * e.g. "1 (-9.100071078494038,-48.89301103772511) (-116.78442279683607,76.80147820713637)"
  */
