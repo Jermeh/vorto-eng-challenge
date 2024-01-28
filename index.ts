@@ -12,7 +12,6 @@ interface Load {
     distance: number;
     distanceFromOriginToPickup: number;
     distanceFromDropoffToOrigin: number;
-    delivered: boolean;
 }
 
 const ORIGIN_POINT: Point = {
@@ -48,7 +47,6 @@ const loadFromFileLine = (line: string): Load => {
         distance: distanceBetweenPoints(pickup, dropoff),
         distanceFromOriginToPickup: distanceBetweenPoints(ORIGIN_POINT, pickup),
         distanceFromDropoffToOrigin: distanceBetweenPoints(dropoff, ORIGIN_POINT),
-        delivered: false,
     };
 }
 
@@ -74,57 +72,39 @@ const canPickupLoad = (currentLocation: Point, currentDriveTime: number, load: L
 }
 
 /**
- * Find's the nearest undelivered load to a driver's current location
- * @param currentLocation The driver's current location
- * @param loads The list of all loads
- */
-const nearestUndeliveredLoad = (currentLocation: Point, loads: Load[]): Load | null => {
-    let nearestLoad: Load | null = null;
-    let minDistance = Number.MAX_VALUE;
-    loads.forEach(load => {
-        const distanceToPickup = distanceBetweenPoints(currentLocation, load.pickup);
-        if (!load.delivered && distanceToPickup < minDistance) {
-            minDistance = distanceToPickup;
-            nearestLoad = load;
-        }
-    });
-    return nearestLoad;
-}
-
-/**
- * An implementation for VRP where a driver always attempts to pick up the nearest load 
- * to their current location, until the next load would cause them to exceed their max drive time.
+ * An implementation of VRP where a driver will pick up the nearest load that the driver 
+ * is able to complete within their shift, repeated until there are no eligible loads.
  * 
  * @param loads The list of all loads
- * @returns The drivers' schedules represented as an array of load numbers
+ * @returns The list of drivers' schedules represented as an array of load numbers
  */
 const buildSchedules = (loads: Load[]): number[][] => {
     const schedules: number[][] = [];
-    let undeliveredLoads = loads.length;
-    while (undeliveredLoads > 0) {
-        // This outer loop represents the building of a single driver's schedule.
-        // Start by finding the nearest load to pickup. Then repeat until the driver
-        // cannot pick up the next load, or there are no more loads;
+    while (loads.length) {
         let driveTime = 0;
         let currentLocation = ORIGIN_POINT;
         const schedule = [];
-        while (driveTime < MAX_DRIVE_TIME) {
-            let nextLoad = nearestUndeliveredLoad(currentLocation, loads);
-            if (!nextLoad || !canPickupLoad(currentLocation, driveTime, nextLoad)) {
-                break;
-            } else {
-                nextLoad.delivered = true;
-                undeliveredLoads--;
+        while (loads.length) {
+            const orderedLoadsByProximity = loads.sort((a, b) =>  {
+                return distanceBetweenPoints(currentLocation, a.pickup) - distanceBetweenPoints(currentLocation, b.pickup)
+            })
+            const nextLoad = orderedLoadsByProximity.find(load => canPickupLoad(currentLocation, driveTime, load));
+            if (nextLoad) {
+                schedule.push(nextLoad.loadNumber);
                 const distanceToLoad = distanceBetweenPoints(currentLocation, nextLoad.pickup);
                 driveTime += distanceToLoad + nextLoad.distance;
                 currentLocation = nextLoad.dropoff;
-                schedule.push(nextLoad.loadNumber);
+                const nextLoadIndex = loads.findIndex(load => load.loadNumber == nextLoad.loadNumber);
+                loads.splice(nextLoadIndex, 1);
+            } else {
+                break;
             }
         }
         schedules.push(schedule);
     }
     return schedules;
 }
+
 
 const { positionals } = parseArgs({
     allowPositionals: true,
